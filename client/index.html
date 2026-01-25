@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>个人博客社区</title>
+  </head>
+  <body>
+    <div id="app">Loading...</div>
+    <script>
+      // 如果前端JS没能成功运行，2秒后显示提示，避免白屏无反馈
+      setTimeout(function () {
+        if (!window.__APP_MOUNTED__) {
+          var el = document.getElementById('app')
+          if (el) {
+            el.innerHTML =
+              '<div style="padding:16px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;font-family:monospace;white-space:pre-wrap;">' +
+              '前端未能加载。请打开浏览器控制台查看报错（F12）。' +
+              '</div>'
+          }
+        }
+      }, 2000)
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
