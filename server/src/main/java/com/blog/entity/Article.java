@@ -50,6 +50,9 @@ public class Article {
     @Column(name = "like_count")
     private Integer likeCount = 0;
     
+    @Column(name = "draft", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean draft = false; // 是否为草稿
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

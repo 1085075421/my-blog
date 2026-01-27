@@ -50,6 +50,7 @@ public class ArticleService {
         article.setSummary(summary);
         article.setCoverImage(coverImage);
         article.setAuthor(author);
+        article.setDraft(false); // 发布文章，不是草稿
         
         if (categoryId != null) {
             Category category = categoryRepository.findById(categoryId)
@@ -124,8 +125,11 @@ public class ArticleService {
     public Article getArticleById(Long id) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在"));
-        article.setViewCount(article.getViewCount() + 1);
-        articleRepository.save(article);
+        // 只有非草稿文章才增加浏览量
+        if (!article.getDraft()) {
+            article.setViewCount(article.getViewCount() + 1);
+            articleRepository.save(article);
+        }
         return article;
     }
     
@@ -162,6 +166,125 @@ public class ArticleService {
     
     public Page<Article> getArticlesByUser(Long userId, Pageable pageable) {
         return articleRepository.findByAuthorId(userId, pageable);
+    }
+    
+    // 获取用户的草稿列表
+    public Page<Article> getDraftsByUser(Long userId, Pageable pageable) {
+        return articleRepository.findByAuthorIdAndDraftTrueOrderByUpdatedAtDesc(userId, pageable);
+    }
+    
+    // 获取用户最近的一篇草稿
+    public Article getLatestDraft(Long userId) {
+        List<Article> drafts = articleRepository.findLatestDraftByAuthorId(userId, 
+            org.springframework.data.domain.PageRequest.of(0, 1));
+        return drafts.isEmpty() ? null : drafts.get(0);
+    }
+    
+    @Transactional
+    public Article saveDraft(Long userId, String title, String content, 
+                             String htmlContent, String summary, 
+                             String coverImage, Long categoryId, List<String> tagNames) {
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        
+        Article article = new Article();
+        article.setTitle(title != null ? title : "无标题");
+        article.setContent(content != null ? content : "");
+        article.setHtmlContent(htmlContent != null ? htmlContent : "");
+        article.setSummary(summary);
+        article.setCoverImage(coverImage);
+        article.setAuthor(author);
+        article.setDraft(true); // 保存为草稿
+        
+        if (categoryId != null) {
+            Category category = categoryRepository.findById(categoryId)
+                    .orElse(null);
+            article.setCategory(category);
+        }
+        
+        if (tagNames != null && !tagNames.isEmpty()) {
+            Set<Tag> tags = new HashSet<>();
+            for (String tagName : tagNames) {
+                Tag tag = tagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        });
+                tags.add(tag);
+            }
+            article.setTags(tags);
+        }
+        
+        return articleRepository.save(article);
+    }
+    
+    @Transactional
+    public Article updateDraft(Long draftId, Long userId, String title, String content, 
+                               String htmlContent, String summary, 
+                               String coverImage, Long categoryId, List<String> tagNames) {
+        Article article = articleRepository.findById(draftId)
+                .orElseThrow(() -> new RuntimeException("草稿不存在"));
+        
+        if (!article.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("无权修改此草稿");
+        }
+        
+        if (!article.getDraft()) {
+            throw new RuntimeException("该文章不是草稿");
+        }
+        
+        article.setTitle(title != null ? title : "无标题");
+        article.setContent(content != null ? content : "");
+        article.setHtmlContent(htmlContent != null ? htmlContent : "");
+        article.setSummary(summary);
+        if (coverImage != null) {
+            article.setCoverImage(coverImage);
+        }
+        
+        if (categoryId != null) {
+            Category category = categoryRepository.findById(categoryId)
+                    .orElse(null);
+            article.setCategory(category);
+        }
+        
+        if (tagNames != null) {
+            Set<Tag> tags = new HashSet<>();
+            for (String tagName : tagNames) {
+                Tag tag = tagRepository.findByName(tagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagRepository.save(newTag);
+                        });
+                tags.add(tag);
+            }
+            article.setTags(tags);
+        }
+        
+        return articleRepository.save(article);
+    }
+    
+    @Transactional
+    public Article publishDraft(Long draftId, Long userId) {
+        Article article = articleRepository.findById(draftId)
+                .orElseThrow(() -> new RuntimeException("草稿不存在"));
+        
+        if (!article.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("无权发布此草稿");
+        }
+        
+        if (!article.getDraft()) {
+            throw new RuntimeException("该文章不是草稿");
+        }
+        
+        article.setDraft(false);
+        Article savedArticle = articleRepository.save(article);
+        
+        // 发布文章获得经验值：10点
+        userService.addExperience(userId, 10, "publish_article");
+        
+        return savedArticle;
     }
     
     @Transactional

@@ -8,8 +8,11 @@
           </h1>
           <div class="header-actions">
             <template v-if="user">
-              <el-button @click="$router.push('/editor')" type="primary" :icon="Edit">
+              <el-button @click="goToEditor" type="primary" :icon="Edit">
                 写文章
+              </el-button>
+              <el-button @click="$router.push('/drafts')" :icon="Document">
+                草稿箱
               </el-button>
               <el-dropdown>
                 <span class="user-info">
@@ -98,6 +101,44 @@ const logout = () => {
   localStorage.removeItem('user')
   user.value = null
   router.push('/')
+}
+
+const goToEditor = async () => {
+  if (!user.value) {
+    router.push('/login')
+    return
+  }
+  
+  try {
+    // 检查是否有最近的一篇草稿
+    const latestDraft = await api.get(`/articles/drafts/latest?userId=${user.value.userId}`)
+    
+    if (latestDraft) {
+      // 有草稿，询问用户是否继续编辑
+      try {
+        await ElMessageBox.confirm(
+          `发现未完成的草稿《${latestDraft.title || '无标题'}》，是否继续编辑？`,
+          '提示',
+          {
+            confirmButtonText: '继续编辑',
+            cancelButtonText: '新建文章',
+            type: 'info'
+          }
+        )
+        // 用户选择继续编辑，跳转到编辑草稿页面
+        router.push(`/editor/${latestDraft.id}`)
+      } catch {
+        // 用户选择新建文章，清空并跳转到新文章页面
+        router.push('/editor')
+      }
+    } else {
+      // 没有草稿，直接跳转到新文章页面
+      router.push('/editor')
+    }
+  } catch (error) {
+    // 获取草稿失败或没有草稿，直接跳转到新文章页面
+    router.push('/editor')
+  }
 }
 </script>
 

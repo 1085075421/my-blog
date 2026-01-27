@@ -118,4 +118,66 @@ public class ArticleController {
         articleService.deleteArticle(id, userId);
         return ResponseEntity.ok().build();
     }
+    
+    // 保存草稿
+    @PostMapping("/drafts")
+    public ResponseEntity<Article> saveDraft(@RequestBody Map<String, Object> request) {
+        Long userId = Long.valueOf(request.get("userId").toString());
+        String title = request.get("title") != null ? request.get("title").toString() : "";
+        String content = request.get("content") != null ? request.get("content").toString() : "";
+        String htmlContent = request.get("htmlContent") != null ? request.get("htmlContent").toString() : "";
+        String summary = request.get("summary") != null ? request.get("summary").toString() : "";
+        String coverImage = request.get("coverImage") != null ? request.get("coverImage").toString() : null;
+        Long categoryId = request.get("categoryId") != null ? Long.valueOf(request.get("categoryId").toString()) : null;
+        @SuppressWarnings("unchecked")
+        List<String> tagNames = (List<String>) request.get("tags");
+        
+        Article article = articleService.saveDraft(userId, title, content, htmlContent, summary, coverImage, categoryId, tagNames);
+        return ResponseEntity.ok(article);
+    }
+    
+    // 更新草稿
+    @PutMapping("/drafts/{id}")
+    public ResponseEntity<Article> updateDraft(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        Long userId = Long.valueOf(request.get("userId").toString());
+        String title = request.get("title") != null ? request.get("title").toString() : "";
+        String content = request.get("content") != null ? request.get("content").toString() : "";
+        String htmlContent = request.get("htmlContent") != null ? request.get("htmlContent").toString() : "";
+        String summary = request.get("summary") != null ? request.get("summary").toString() : "";
+        String coverImage = request.get("coverImage") != null ? request.get("coverImage").toString() : null;
+        Long categoryId = request.get("categoryId") != null ? Long.valueOf(request.get("categoryId").toString()) : null;
+        @SuppressWarnings("unchecked")
+        List<String> tagNames = (List<String>) request.get("tags");
+        
+        Article article = articleService.updateDraft(id, userId, title, content, htmlContent, summary, coverImage, categoryId, tagNames);
+        return ResponseEntity.ok(article);
+    }
+    
+    // 发布草稿
+    @PostMapping("/drafts/{id}/publish")
+    public ResponseEntity<Article> publishDraft(@PathVariable Long id, @RequestParam Long userId) {
+        Article article = articleService.publishDraft(id, userId);
+        return ResponseEntity.ok(article);
+    }
+    
+    // 获取用户的草稿列表
+    @GetMapping("/drafts")
+    public ResponseEntity<Page<Article>> getDrafts(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Article> drafts = articleService.getDraftsByUser(userId, pageable);
+        return ResponseEntity.ok(drafts);
+    }
+    
+    // 获取用户最近的一篇草稿
+    @GetMapping("/drafts/latest")
+    public ResponseEntity<Article> getLatestDraft(@RequestParam Long userId) {
+        Article draft = articleService.getLatestDraft(userId);
+        if (draft == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(draft);
+    }
 }

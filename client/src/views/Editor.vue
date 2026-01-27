@@ -85,7 +85,10 @@
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="handleSave" :loading="saving">
-              {{ isEdit ? '更新' : '发布' }}
+              {{ isDraft ? '发布' : (isEdit ? '更新' : '发布') }}
+            </el-button>
+            <el-button @click="handleSaveDraft" :loading="savingDraft">
+              {{ isDraft ? '保存草稿' : '保存为草稿' }}
             </el-button>
             <el-button @click="$router.push('/')">取消</el-button>
           </el-form-item>
@@ -128,11 +131,14 @@ import api from '../utils/api'
 const route = useRoute()
 const router = useRouter()
 const saving = ref(false)
+const savingDraft = ref(false)
 const activeTab = ref('edit')
 const categories = ref([])
 const allTags = ref([])
 const showCreateCategory = ref(false)
 const creatingCategory = ref(false)
+const isDraft = ref(false)
+const currentDraftId = ref(null)
 const newCategory = ref({
   name: '',
   description: ''
@@ -196,6 +202,8 @@ const handleCreateCategory = async () => {
 const loadArticle = async () => {
   try {
     const article = await api.get(`/articles/${route.params.id}`)
+    isDraft.value = article.draft === true
+    currentDraftId.value = article.draft ? article.id : null
     form.value = {
       title: article.title,
       content: article.content,
@@ -254,6 +262,14 @@ const handleSave = async () => {
       tags: processedTags
     }
 
+    // 如果是草稿，先发布草稿
+    if (isDraft.value && currentDraftId.value) {
+      await api.post(`/articles/drafts/${currentDraftId.value}/publish?userId=${user.userId}`)
+      ElMessage.success('发布成功')
+      router.push('/')
+      return
+    }
+
     if (isEdit.value) {
       await api.put(`/articles/${route.params.id}`, data)
       ElMessage.success('更新成功')
@@ -269,11 +285,75 @@ const handleSave = async () => {
   }
 }
 
+const handleSaveDraft = async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (!user.userId) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  savingDraft.value = true
+  try {
+    // 处理标签：如果标签不存在，自动创建
+    const processedTags = []
+    for (const tagName of form.value.tags) {
+      if (tagName && tagName.trim()) {
+        try {
+          // 尝试创建标签（如果已存在会直接返回）
+          await api.post('/tags', { name: tagName.trim() })
+        } catch (error) {
+          console.warn('创建标签失败:', error)
+        }
+        processedTags.push(tagName.trim())
+      }
+    }
+
+    const data = {
+      userId: user.userId,
+      title: form.value.title || '无标题',
+      content: form.value.content || '',
+      htmlContent: htmlContent.value || '',
+      summary: form.value.summary || '',
+      coverImage: form.value.coverImage || null,
+      categoryId: form.value.categoryId || null,
+      tags: processedTags
+    }
+
+    // 如果是编辑草稿，更新草稿
+    if (isDraft.value && currentDraftId.value) {
+      await api.put(`/articles/drafts/${currentDraftId.value}`, data)
+      ElMessage.success('草稿已保存')
+      // 更新currentDraftId，确保后续保存时知道这是草稿
+      const updatedDraft = await api.get(`/articles/${currentDraftId.value}`)
+      currentDraftId.value = updatedDraft.id
+    } else {
+      // 创建新草稿
+      const draft = await api.post('/articles/drafts', data)
+      currentDraftId.value = draft.id
+      isDraft.value = true
+      ElMessage.success('草稿已保存')
+      // 更新路由，但不刷新页面
+      router.replace(`/editor/${draft.id}`)
+    }
+  } catch (error) {
+    console.error('保存草稿失败:', error)
+    ElMessage.error('保存草稿失败')
+  } finally {
+    savingDraft.value = false
+  }
+}
+
 onMounted(async () => {
   await loadCategories()
   await loadTags()
   if (isEdit.value) {
     await loadArticle()
+  } else {
+    // 如果是新建文章，检查是否有最近草稿（这个检查已经在App.vue的goToEditor中做了）
+    // 但为了保险起见，这里也清空一下状态
+    isDraft.value = false
+    currentDraftId.value = null
   }
 })
 </script>

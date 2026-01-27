@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
     Page<Article> findByAuthorId(Long authorId, Pageable pageable);
@@ -27,4 +29,11 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     
     @Query("SELECT a FROM Article a LEFT JOIN a.favorites f GROUP BY a.id ORDER BY COUNT(f.id) DESC, a.createdAt DESC")
     Page<Article> findAllByOrderByFavoriteCountDesc(Pageable pageable);
+    
+    // 查询用户的草稿列表（按更新时间倒序）
+    Page<Article> findByAuthorIdAndDraftTrueOrderByUpdatedAtDesc(Long authorId, Pageable pageable);
+    
+    // 查询用户最近的一篇草稿
+    @Query("SELECT a FROM Article a WHERE a.author.id = :authorId AND a.draft = true ORDER BY a.updatedAt DESC")
+    List<Article> findLatestDraftByAuthorId(@Param("authorId") Long authorId, Pageable pageable);
 }
