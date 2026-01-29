@@ -28,7 +28,13 @@
           {{ formatDate(row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="置顶" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.pinned" type="warning" size="small">置顶</el-tag>
+          <span v-else style="color: #999;">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="250" fixed="right">
         <template #default="{ row }">
           <el-button
             size="small"
@@ -36,6 +42,13 @@
             @click="$router.push(`/article/${row.id}`)"
           >
             查看
+          </el-button>
+          <el-button
+            size="small"
+            :type="row.pinned ? 'warning' : 'success'"
+            @click="handleTogglePin(row)"
+          >
+            {{ row.pinned ? '取消置顶' : '置顶' }}
           </el-button>
           <el-button
             size="small"
@@ -114,6 +127,22 @@ const handleDelete = async (article) => {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
+    }
+  }
+}
+
+const handleTogglePin = async (article) => {
+  try {
+    await api.put(`/articles/${article.id}/pin`)
+    ElMessage.success(article.pinned ? '已取消置顶' : '已置顶')
+    loadArticles()
+  } catch (error) {
+    console.error('置顶操作失败:', error)
+    const errorMsg = error.response?.data?.error || error.message || '操作失败'
+    if (error.response?.status === 403) {
+      ElMessage.error('只有管理员可以置顶文章')
+    } else {
+      ElMessage.error(errorMsg)
     }
   }
 }

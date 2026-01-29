@@ -2,6 +2,7 @@ package com.blog.controller;
 
 import com.blog.entity.Article;
 import com.blog.service.ArticleService;
+import com.blog.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,9 @@ public class ArticleController {
     
     @Autowired
     private ArticleService articleService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
     
     @PostMapping
     public ResponseEntity<Article> createArticle(@RequestBody Map<String, Object> request) {
@@ -179,5 +183,25 @@ public class ArticleController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(draft);
+    }
+    
+    // 置顶/取消置顶文章（仅管理员）
+    @PutMapping("/{id}/pin")
+    public ResponseEntity<Article> togglePinArticle(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            String cleanToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+            Long userId = jwtUtil.getUserIdFromToken(cleanToken);
+            Article article = articleService.togglePinArticle(id, userId);
+            return ResponseEntity.ok(article);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
     }
 }

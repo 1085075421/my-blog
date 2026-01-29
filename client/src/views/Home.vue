@@ -47,7 +47,18 @@
                 <div class="article-content-wrapper">
                   <div class="article-main">
                     <div class="article-header">
-                      <h3>{{ article.title }}</h3>
+                      <h3>
+                        <el-tag
+                          v-if="article.pinned"
+                          type="warning"
+                          size="small"
+                          effect="dark"
+                          style="margin-right: 8px; vertical-align: middle;"
+                        >
+                          置顶
+                        </el-tag>
+                        {{ article.title }}
+                      </h3>
                       <div class="article-meta">
                         <span 
                           class="author-link" 

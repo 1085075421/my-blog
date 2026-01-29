@@ -6,7 +6,7 @@ After=network.target mysql.service
 Type=simple
 User=root
 WorkingDirectory=/opt/my-blog/backend
-ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m /opt/my-blog/backend/blog-server-1.0.0.jar
+ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m --spring.profiles.active=prod /opt/my-blog/backend/blog-server-1.0.0.jar
 Restart=always
 RestartSec=10
 StandardOutput=append:/opt/my-blog/logs/backend.log

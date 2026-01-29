@@ -53,6 +53,9 @@ public class Article {
     @Column(name = "draft", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean draft = false; // 是否为草稿
     
+    @Column(name = "pinned", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean pinned = false; // 是否置顶
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

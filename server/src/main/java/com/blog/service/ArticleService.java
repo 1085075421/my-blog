@@ -36,6 +36,9 @@ public class ArticleService {
     @Autowired
     private UserService userService;
     
+    @Autowired
+    private AdminService adminService;
+    
     @Transactional
     public Article createArticle(Long userId, String title, String content, 
                                 String htmlContent, String summary, 
@@ -297,5 +300,26 @@ public class ArticleService {
         }
         
         articleRepository.delete(article);
+    }
+    
+    // 置顶/取消置顶文章（仅管理员）
+    @Transactional
+    public Article togglePinArticle(Long articleId, Long userId) {
+        // 检查是否为管理员
+        if (!adminService.isAdmin(userId)) {
+            throw new RuntimeException("只有管理员可以置顶文章");
+        }
+        
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new RuntimeException("文章不存在"));
+        
+        // 不能置顶草稿
+        if (article.getDraft()) {
+            throw new RuntimeException("不能置顶草稿");
+        }
+        
+        // 切换置顶状态
+        article.setPinned(!article.getPinned());
+        return articleRepository.save(article);
     }
 }

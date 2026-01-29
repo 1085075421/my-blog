@@ -4,9 +4,9 @@ spring:
     name: blog-server
   
   datasource:
-    url: jdbc:mysql://localhost:3306/blog_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: blog_user  # 修改为你的数据库用户
-    password: your_secure_password  # 修改为你的数据库密码
+    url: jdbc:mysql://localhost:3306/blog_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: blog_db  # 修改为你的数据库用户
+    password: MyBlog@mxf681388  # 修改为你的数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:
